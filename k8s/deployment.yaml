@@ -15,6 +15,7 @@ spec:
       containers:
       - name: microservicio-pedidos
         image: bryanlrx/ec-pedidos:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8083
         env:
