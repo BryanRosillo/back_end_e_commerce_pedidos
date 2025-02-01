@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: microservicio-pedidos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: microservicio-pedidos
+  template:
+    metadata:
+      labels:
+        app: microservicio-pedidos
+    spec:
+      containers:
+      - name: microservicio-pedidos
+        image: bryanlrx/ec-pedidos:latest
+        ports:
+        - containerPort: 8083
+        env:
+        - name: DB_URL
+          valueFrom: 
+            secretKeyRef:
+              name: db-secret-url-pedidos 
+              key: db_url
+        - name: DB_USERNAME
+          valueFrom: 
+            secretKeyRef:
+              name: db-secret-username
+              key: db_username
+        - name: DB_PASSWORD
+          valueFrom: 
+            secretKeyRef:
+              name: db-secret
+              key: db_password
+        - name: MICROSERVICIO_REGISTRO_URI
+          value: 'http://microservicio-registro:8761/eureka/'

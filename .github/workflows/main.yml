@@ -1,10 +1,16 @@
-name: Docker Image
+name: CI-CD Docker y Kubernetes
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+
+env:
+  GKE_CLUSTER: "ecommerce-cluster"
+  GKE_ZONA: "us-central1"
+  IMAGEN_DOCKER: "ec-pedidos"
+
 
 jobs:
 
@@ -16,6 +22,19 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2.1.7
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - uses: "google-github-actions/setup-gcloud@v2"
+      with:
+        install_components: "gke-gcloud-auth-plugin"
+
+    - name: Config kubectl
+      run: gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONA --project ${{ secrets.GCP_PROYECTO_ID}}
+
+
     - name: Docker Login
       uses: docker/login-action@v3.3.0
       with:
@@ -25,7 +44,10 @@ jobs:
         logout: true
           
     - name: Build the Docker image
-      run: docker build --build-arg DB_URL=${{ secrets.DB_URL }} --build-arg DB_USERNAME=${{ secrets.DB_USERNAME }} --build-arg DB_PASSWORD=${{ secrets.DB_PASSWORD }} --build-arg MICROSERVICIO_REGISTRO_URI=${{ secrets.MICROSERVICIO_REGISTRO_URI }} -t ${{secrets.DOCKER_HUB_USERNAME}}/ec-pedidos:latest .
+      run: docker build --build-arg DB_URL=${{ secrets.DB_URL }} --build-arg DB_USERNAME=${{ secrets.DB_USERNAME }} --build-arg DB_PASSWORD=${{ secrets.DB_PASSWORD }} --build-arg MICROSERVICIO_REGISTRO_URI=${{ secrets.MICROSERVICIO_REGISTRO_URI }} -t ${{secrets.DOCKER_HUB_USERNAME}}/$IMAGEN_DOCKER:latest .
 
     - name: Push Docker image to Docker Hub
-      run: docker push ${{secrets.DOCKER_HUB_USERNAME}}/ec-pedidos:latest
+      run: docker push ${{secrets.DOCKER_HUB_USERNAME}}/$IMAGEN_DOCKER:latest
+    
+    - name: Update Kubernetes deployment
+      run: kubectl apply -f k8s/deployment.yaml
